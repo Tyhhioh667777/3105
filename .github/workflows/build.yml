@@ -1,0 +1,42 @@
+name: Build 3105 IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Thiết lập Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 'latest-stable'
+
+      - name: Build ứng dụng (Bỏ qua bước Sign chứng chỉ)
+        run: |
+          mkdir -p build
+          xcodebuild clean build \
+            -project ThreeOneOSFive.xcodeproj \
+            -scheme ThreeOneOSFive \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            CONFIGURATION_BUILD_DIR=$(pwd)/build
+
+      - name: Đóng gói thành file .ipa
+        run: |
+          mkdir -p Payload
+          cp -r build/ThreeOneOSFive.app Payload/
+          zip -r 3105.ipa Payload
+
+      - name: Tải file IPA lên GitHub Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3105-Unsigned-IPA
+          path: 3105.ipa
