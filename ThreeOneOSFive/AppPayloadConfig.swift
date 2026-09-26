@@ -36,7 +36,7 @@ enum AppPayloadConfig {
 
     // MARK: - Hiển thị
 
-    static let appTitle = "3105"
+    static let appTitle = "3105 Dev Mod FF by TIZ FF"
     static let appSubtitle = "Fixed payload injector"
 
     /// Dải iOS hỗ trợ hiển thị ngắn gọn trên UI
