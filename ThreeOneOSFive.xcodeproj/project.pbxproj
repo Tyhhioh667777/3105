@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3105N200 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105N020; };
 		3105M200 /* AppPayloadConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105M020; };
 		3105M300 /* FixedPayloadInjector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105M021; };
 		3105M400 /* Payloads in Resources */ = {isa = PBXBuildFile; fileRef = 3105M100; };
@@ -81,6 +82,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3105N020 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		3105M020 /* AppPayloadConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPayloadConfig.swift; sourceTree = "<group>"; };
 		3105M021 /* FixedPayloadInjector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixedPayloadInjector.swift; sourceTree = "<group>"; };
 		3105M100 /* Payloads */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Payloads; sourceTree = "<group>"; };
@@ -196,6 +198,7 @@
 			children = (
 				3105M020 /* AppPayloadConfig.swift */,
 				3105M021 /* FixedPayloadInjector.swift */,
+				3105N020 /* AuthService.swift */,
 				3105A050 /* ThreeOneOSFive-Bridging-Header.h */,
 				3105A060 /* Info.plist */,
 				3105A020 /* App.swift */,
@@ -449,6 +452,7 @@
 				3105L205,
 				3105M200,
 				3105M300,
+				3105N200,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
