@@ -12,6 +12,9 @@ struct ContentView: View {
     @State private var loginMessage: String = ""
     @State private var loginMessageIsError: Bool = false
 
+    /// URL Telegram để lấy key — đổi username cho phù hợp
+    private let telegramURL = URL(string: "https://t.me/tizffchat")!
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -23,6 +26,7 @@ struct ContentView: View {
                         statusCard
                     }
                     exploitCard
+                    buyKeyButton
                 }
                 .padding(16)
             }
@@ -34,32 +38,40 @@ struct ContentView: View {
                     Button { showLogs = true } label: {
                         Image(systemName: "apple.terminal")
                     }
+                    .accessibilityLabel("Logs")
                 }
             }
-            .sheet(isPresented: $showLogs) { LogView() }
+            .sheet(isPresented: $showLogs) {
+                LogView()
+            }
         }
         .tint(AppTheme.accent)
         .onAppear {
-            // Auto-login khi mở app
             _ = AuthService.shared.autoLoginIfPossible()
         }
     }
 
-    // MARK: - Info
+    // MARK: - Info Card
 
     private var infoCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            row(icon: "person.crop.circle.fill", title: "Developer", value: "@devhaxios")
+            row(icon: "person.crop.circle.fill",
+                title: "Developer",
+                value: "@devhaxios")
             Divider()
-            row(icon: "app.badge.fill", title: "Ứng dụng",
+            row(icon: "app.badge.fill",
+                title: "Ứng dụng",
                 value: "\(AppPayloadConfig.appTitle) · v\(appVersion)")
             Divider()
-            row(icon: "iphone", title: "Thiết bị",
+            row(icon: "iphone",
+                title: "Thiết bị",
                 value: "\(AppInfo.machineName) · iOS \(AppInfo.osVersion)")
         }
         .padding(14)
-        .background(Color(uiColor: .systemBackground),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            Color(uiColor: .systemBackground),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
     }
 
     private func row(icon: String, title: String, value: String) -> some View {
@@ -68,15 +80,20 @@ struct ContentView: View {
                 .font(.system(size: 20))
                 .foregroundStyle(AppTheme.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.caption).foregroundStyle(.secondary)
-                Text(value).font(.subheadline.weight(.semibold)).lineLimit(1)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
                     .truncationMode(.middle)
             }
             Spacer()
         }
     }
 
-    // MARK: - Auth
+    // MARK: - Auth Card
 
     @ViewBuilder
     private var authCard: some View {
@@ -88,8 +105,10 @@ struct ContentView: View {
             }
         }
         .padding(14)
-        .background(Color(uiColor: .systemBackground),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            Color(uiColor: .systemBackground),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
     }
 
     private var loggedInView: some View {
@@ -99,30 +118,41 @@ struct ContentView: View {
                     .font(.system(size: 22))
                     .foregroundStyle(.green)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Đã đăng nhập").font(.headline).foregroundStyle(.green)
-                    Text("Tài khoản: \(auth.currentUser)").font(.caption)
+                    Text("Đã đăng nhập")
+                        .font(.headline)
+                        .foregroundStyle(.green)
+                    Text("Tài khoản: \(auth.currentUser.isEmpty ? "User" : auth.currentUser)")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Button {
                     auth.logout()
                     loginMessage = ""
+                    log("user: logged out")
                 } label: {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .foregroundStyle(.red)
                 }
+                .buttonStyle(.plain)
             }
+
             Divider()
+
             HStack {
                 Label("Hết hạn", systemImage: "calendar")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Text(auth.expiryDate.isEmpty ? "—" : auth.expiryDate)
                     .font(.caption.monospaced())
+                    .foregroundStyle(.primary)
             }
+
             HStack {
                 Label("Còn lại", systemImage: "clock")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(auth.remainingDays) ngày")
                     .font(.caption.monospaced())
@@ -138,8 +168,10 @@ struct ContentView: View {
                     .font(.system(size: 20))
                     .foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Đăng nhập").font(.headline)
-                    Text("Nhập key để kích hoạt").font(.caption)
+                    Text("Đăng nhập")
+                        .font(.headline)
+                    Text("Nhập key để kích hoạt")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -154,16 +186,21 @@ struct ContentView: View {
                     .disabled(auth.isLoggingIn)
                     .onSubmit { performLogin() }
 
-                Button { performLogin() } label: {
+                Button {
+                    performLogin()
+                } label: {
                     if auth.isLoggingIn {
                         ProgressView().controlSize(.small)
                     } else {
-                        Text("Đăng nhập").font(.subheadline.weight(.semibold))
+                        Text("Đăng nhập")
+                            .font(.subheadline.weight(.semibold))
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(keyInput.trimmingCharacters(in: .whitespaces).isEmpty
-                          || auth.isLoggingIn)
+                .disabled(
+                    keyInput.trimmingCharacters(in: .whitespaces).isEmpty
+                    || auth.isLoggingIn
+                )
             }
 
             if !loginMessage.isEmpty {
@@ -179,48 +216,64 @@ struct ContentView: View {
         let trimmed = keyInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         loginMessage = ""
+
         Task {
             await AuthService.shared.login(key: trimmed)
             if AuthService.shared.isValid {
                 loginMessage = "Đăng nhập thành công"
                 loginMessageIsError = false
                 keyInput = ""
+                log("user: login success")
             } else {
                 loginMessage = "Đăng nhập thất bại. Kiểm tra lại key hoặc mạng."
                 loginMessageIsError = true
+                log("user: login failed")
             }
         }
     }
 
-    // MARK: - App + Toggle
+    // MARK: - App + Toggle Card
 
     private var appCard: some View {
         HStack(spacing: 12) {
             appIcon
+
             VStack(alignment: .leading, spacing: 3) {
                 Text(AppPayloadConfig.targetDisplayName)
-                    .font(.headline).lineLimit(1)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
                 Text(AppPayloadConfig.targetBundleID)
-                    .font(.caption.monospaced()).foregroundStyle(.secondary)
-                    .lineLimit(1).truncationMode(.middle)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
+
             Spacer(minLength: 8)
+
             Toggle("", isOn: toggleBinding)
                 .labelsHidden()
                 .disabled(injector.state.isBusy || !canInteract)
+
             if injector.state.isBusy {
                 ProgressView().controlSize(.small)
             }
         }
         .padding(14)
-        .background(Color(uiColor: .systemBackground),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            Color(uiColor: .systemBackground),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
     }
 
     @ViewBuilder
     private var appIcon: some View {
         if let name = AppPayloadConfig.customAppIcon, let img = UIImage(named: name) {
-            Image(uiImage: img).resizable().scaledToFill()
+            Image(uiImage: img)
+                .resizable()
+                .scaledToFill()
                 .frame(width: 44, height: 44)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         } else {
@@ -240,7 +293,11 @@ struct ContentView: View {
             get: { injector.state.isActive },
             set: { newValue in
                 guard auth.isValid else { return }
-                if newValue { injector.inject() } else { injector.clean() }
+                if newValue {
+                    injector.inject()
+                } else {
+                    injector.clean()
+                }
             }
         )
     }
@@ -250,15 +307,19 @@ struct ContentView: View {
                          || appState.exploitStatus.isSuccess)
     }
 
-    // MARK: - Status
+    // MARK: - Status Card
 
     private var statusCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(stateTitle, systemImage: stateIcon)
-                .font(.headline).foregroundStyle(stateColor)
+                .font(.headline)
+                .foregroundStyle(stateColor)
 
             if let msg = injector.lastMessage {
-                Text(msg).font(.subheadline).foregroundStyle(.secondary)
+                Text(msg)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             let failed = injector.results.filter { !$0.success }
@@ -267,12 +328,16 @@ struct ContentView: View {
                     ForEach(failed) { r in
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption).foregroundStyle(.red)
+                                .font(.caption)
+                                .foregroundStyle(.red)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(r.spec.destinationFilename)
                                     .font(.caption.weight(.semibold))
                                 if let e = r.error {
-                                    Text(e).font(.caption2).foregroundStyle(.secondary)
+                                    Text(e)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         }
@@ -280,73 +345,89 @@ struct ContentView: View {
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.red.opacity(0.08),
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(
+                    Color.red.opacity(0.08),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
             }
 
             if case .failed = injector.state {
-                Button("Dọn sạch trạng thái") { injector.forceClean() }
-                    .buttonStyle(.bordered).controlSize(.small)
+                Button("Dọn sạch trạng thái") {
+                    injector.forceClean()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color(uiColor: .systemBackground),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            Color(uiColor: .systemBackground),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
     }
 
     private var stateTitle: String {
         switch injector.state {
-        case .idle: return "Chưa Kích hoạt"
-        case .injecting: return "Đang Kích Hoạt"
-        case .active: return "Đã Kích Hoạt"
-        case .cleaning: return "Đang xóa"
-        case .partial(let s): return "Một phần: \(s)"
-        case .failed: return "Lỗi"
-        }
-    }
-    private var stateIcon: String {
-        switch injector.state {
-        case .idle: return "circle"
-        case .injecting: return "arrow.down.circle"
-        case .active: return "checkmark.circle.fill"
-        case .cleaning: return "trash.circle"
-        case .partial: return "exclamationmark.circle.fill"
-        case .failed: return "exclamationmark.triangle.fill"
-        }
-    }
-    private var stateColor: Color {
-        switch injector.state {
-        case .idle: return .secondary
-        case .injecting, .cleaning: return .orange
-        case .active: return .green
-        case .partial: return .orange
-        case .failed: return .red
+        case .idle:              return "Chưa Kích hoạt"
+        case .injecting:         return "Đang Kích Hoạt"
+        case .active:            return "Đã Kích Hoạt"
+        case .cleaning:          return "Đang xóa"
+        case .partial(let info): return "Một phần: \(info)"
+        case .failed:            return "Lỗi"
         }
     }
 
-    // MARK: - Exploit
+    private var stateIcon: String {
+        switch injector.state {
+        case .idle:        return "circle"
+        case .injecting:   return "arrow.down.circle"
+        case .active:      return "checkmark.circle.fill"
+        case .cleaning:    return "trash.circle"
+        case .partial:     return "exclamationmark.circle.fill"
+        case .failed:      return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var stateColor: Color {
+        switch injector.state {
+        case .idle:                 return .secondary
+        case .injecting, .cleaning: return .orange
+        case .active:               return .green
+        case .partial:              return .orange
+        case .failed:               return .red
+        }
+    }
+
+    // MARK: - Exploit Card
 
     private var exploitCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(exploitTitle, systemImage: exploitIcon)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(exploitColor)
+
             if appState.kernelExploitRunning {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text("Đang chạy kernel exploit…").font(.caption)
+                    Text("Đang chạy kernel exploit…")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
-            if let u = appState.unsupportedMessage {
-                Text("iOS không được hỗ trợ: \(u)").font(.caption).foregroundStyle(.red)
+
+            if let unsupported = appState.unsupportedMessage {
+                Text("iOS không được hỗ trợ: \(unsupported)")
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color(uiColor: .systemBackground),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            Color(uiColor: .systemBackground),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
     }
 
     private var exploitTitle: String {
@@ -357,6 +438,7 @@ struct ContentView: View {
         if appState.exploitStatus.isFailed { return "Kernel exploit: THẤT BẠI" }
         return "Chưa chạy exploit"
     }
+
     private var exploitIcon: String {
         if KernelExploit.hasSandboxAccess() { return "checkmark.shield.fill" }
         if appState.unsupportedMessage != nil { return "xmark.octagon.fill" }
@@ -364,12 +446,65 @@ struct ContentView: View {
         if appState.kernelExploitRunning { return "hourglass" }
         return "shield"
     }
+
     private var exploitColor: Color {
         if KernelExploit.hasSandboxAccess() { return .green }
         if appState.unsupportedMessage != nil { return .red }
         if appState.exploitStatus.isFailed { return .red }
         return .secondary
     }
+
+    // MARK: - Buy Key Button
+
+    private var buyKeyButton: some View {
+        Button {
+            UIApplication.shared.open(telegramURL)
+            log("user: opened Telegram buy-key link")
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Lấy Key")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text("Tham gia Telegram để nhận key")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.0, green: 0.55, blue: 0.85),
+                        Color(red: 0.10, green: 0.70, blue: 0.95)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Mở Telegram lấy key")
+    }
+
+    // MARK: - App Version
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "AppReleaseDisplayVersion") as? String
