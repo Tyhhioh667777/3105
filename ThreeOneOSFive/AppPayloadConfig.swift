@@ -9,7 +9,7 @@ enum AppPayloadConfig {
 
     // MARK: - App đích
 
-    /// Bundle ID của app đích
+    /// Bundle ID của app đích (VD: "com.apple.MobileSMS")
     static let targetBundleID = "com.dts.freefireth"
 
     /// Tên hiển thị trên UI
@@ -29,9 +29,8 @@ enum AppPayloadConfig {
     // - destination: tên file khi ghi vào app đích. nil = giữ nguyên.
     //
     static let payloads: [PayloadSpec] = [
-        PayloadSpec(resource: "localConfig", ext: "json",   destination: nil),
-        PayloadSpec(resource: "Assembly-CSharp-patch",   ext: "bytes", destination: nil),
-        //PayloadSpec(resource: "payload",  ext: "bin",   destination: nil),
+        PayloadSpec(resource: "localConfig",              ext: "json",  destination: nil),
+        PayloadSpec(resource: "Assembly-CSharp-patch",    ext: "bytes", destination: nil),
     ]
 
     /// Thư mục chứa file trong bundle
@@ -40,9 +39,15 @@ enum AppPayloadConfig {
     /// Thư mục con bên trong container app đích
     static let destinationFolder = "Documents"
 
-    // MARK: - UI
+    // MARK: - Hiển thị
+
     static let appTitle = "3105"
     static let appSubtitle = "Fixed payload injector"
+
+    /// Tên icon tùy chỉnh (nil = dùng mặc định)
+    /// Ví dụ: "FreeFireIcon", "GameIcon", "AppLogo"
+    /// Ảnh phải có trong Assets.xcassets
+    static let customAppIcon: String? = nil
 }
 
 /// Mô tả 1 file cần dán.
