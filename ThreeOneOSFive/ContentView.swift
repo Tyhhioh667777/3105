@@ -241,9 +241,9 @@ struct ContentView: View {
 
     private var stateTitle: String {
         switch injector.state {
-        case .idle:              return "Chưa dán"
-        case .injecting:         return "Đang dán"
-        case .active:            return "Đã dán"
+        case .idle:              return "Chưa Kích hoạt"
+        case .injecting:         return "Đang Kích Hoạt"
+        case .active:            return "Đã Kích Hoạt"
         case .cleaning:          return "Đang xóa"
         case .partial(let info): return "Một phần: \(info)"
         case .failed:            return "Lỗi"
