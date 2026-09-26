@@ -6,13 +6,10 @@ struct ContentView: View {
     @ObservedObject private var auth = AuthService.shared
 
     @State private var showLogs = false
-
-    // Login form state
     @State private var keyInput: String = ""
     @State private var loginMessage: String = ""
     @State private var loginMessageIsError: Bool = false
 
-    /// URL Telegram để lấy key — đổi username cho phù hợp
     private let telegramURL = URL(string: "https://t.me/tizffchat")!
 
     var body: some View {
@@ -54,18 +51,33 @@ struct ContentView: View {
     // MARK: - Info Card
 
     private var infoCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let version = AppInfo.versionTuple
+        let support = AppPayloadConfig.checkIOSSupport(
+            major: version.major,
+            minor: version.minor,
+            patch: version.patch
+        )
+
+        return VStack(alignment: .leading, spacing: 10) {
             row(icon: "person.crop.circle.fill",
                 title: "Developer",
-                value: "@devhaxios")
+                value: AppPayloadConfig.developerHandle)
+
             Divider()
+
             row(icon: "app.badge.fill",
                 title: "Ứng dụng",
                 value: "\(AppPayloadConfig.appTitle) · v\(appVersion)")
+
             Divider()
+
             row(icon: "iphone",
                 title: "Thiết bị",
                 value: "\(AppInfo.machineName) · iOS \(AppInfo.osVersion)")
+
+            Divider()
+
+            iosSupportRow(support: support)
         }
         .padding(14)
         .background(
@@ -90,6 +102,41 @@ struct ContentView: View {
                     .truncationMode(.middle)
             }
             Spacer()
+        }
+    }
+
+    /// Row riêng cho trạng thái iOS hỗ trợ — có màu xanh/đỏ + ghi chú
+    private func iosSupportRow(support: (supported: Bool, message: String)) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: support.supported
+                      ? "checkmark.seal.fill"
+                      : "xmark.seal.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(support.supported ? .green : .red)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Trạng thái iOS")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(support.message)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(support.supported ? .green : .red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+            }
+
+            // Dòng phụ: dải hỗ trợ chung
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("Dải hỗ trợ: \(AppPayloadConfig.supportedIOSRange)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.leading, 30)
         }
     }
 
@@ -232,33 +279,49 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - App + Toggle Card
+    // MARK: - App + Toggle Card (có ghi chú)
 
     private var appCard: some View {
-        HStack(spacing: 12) {
-            appIcon
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                appIcon
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(AppPayloadConfig.targetDisplayName)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(AppPayloadConfig.targetDisplayName)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
 
-                Text(AppPayloadConfig.targetBundleID)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                    Text(AppPayloadConfig.targetBundleID)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                Spacer(minLength: 8)
+
+                Toggle("", isOn: toggleBinding)
+                    .labelsHidden()
+                    .disabled(injector.state.isBusy || !canInteract)
+
+                if injector.state.isBusy {
+                    ProgressView().controlSize(.small)
+                }
             }
 
-            Spacer(minLength: 8)
+            Divider()
 
-            Toggle("", isOn: toggleBinding)
-                .labelsHidden()
-                .disabled(injector.state.isBusy || !canInteract)
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "info.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .padding(.top, 1)
 
-            if injector.state.isBusy {
-                ProgressView().controlSize(.small)
+                Text(AppPayloadConfig.activationNote)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(14)
