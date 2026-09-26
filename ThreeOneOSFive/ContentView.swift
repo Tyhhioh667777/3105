@@ -9,9 +9,8 @@ struct ContentView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    headerCard
-                    payloadListCard
-                    toggleCard
+                    infoCard
+                    appCard
                     statusCard
                     exploitCard
                 }
@@ -35,31 +34,61 @@ struct ContentView: View {
         .tint(AppTheme.accent)
     }
 
-    // MARK: - Header
+    // MARK: - Info (dev + app + device)
 
-    private var headerCard: some View {
+    private var infoCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                AppRowIcon(systemName: "shippingbox.fill", frameSize: 44)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(AppPayloadConfig.targetDisplayName)
-                        .font(.headline)
-                    Text(AppPayloadConfig.targetBundleID)
-                        .font(.caption.monospaced())
+            HStack(spacing: 10) {
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(AppTheme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Developer")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
+                    Text("@devhaxios")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                }
+                Spacer()
+            }
+
+            Divider()
+
+            HStack(spacing: 10) {
+                Image(systemName: "app.badge.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(AppTheme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ứng dụng")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(AppPayloadConfig.appTitle) · v\(appVersion)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                Spacer()
+            }
+
+            Divider()
+
+            HStack(spacing: 10) {
+                Image(systemName: "iphone")
+                    .font(.system(size: 20))
+                    .foregroundStyle(AppTheme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Thiết bị")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(AppInfo.machineName) · iOS \(AppInfo.osVersion)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
                 Spacer()
             }
-            Divider()
-            HStack {
-                Text("Đích").font(.caption).foregroundStyle(.secondary)
-                Spacer()
-                Text("Documents/")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.primary)
-            }
         }
         .padding(14)
         .background(
@@ -68,115 +97,33 @@ struct ContentView: View {
         )
     }
 
-    // MARK: - Payload list
+    // MARK: - App + Toggle (gộp 1 hàng)
 
-    private var payloadListCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("File cần dán")
+    private var appCard: some View {
+        HStack(spacing: 12) {
+            appIcon
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(AppPayloadConfig.targetDisplayName)
                     .font(.headline)
-                Spacer()
-                Text("\(AppPayloadConfig.payloads.count)")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        Color(uiColor: .secondarySystemFill),
-                        in: Capsule()
-                    )
-            }
-
-            Divider()
-
-            VStack(spacing: 0) {
-                ForEach(Array(AppPayloadConfig.payloads.enumerated()), id: \.element.id) { index, spec in
-                    payloadRow(spec: spec)
-                    if index < AppPayloadConfig.payloads.count - 1 {
-                        Divider().padding(.leading, 24)
-                    }
-                }
-            }
-        }
-        .padding(14)
-        .background(
-            Color(uiColor: .systemBackground),
-            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-        )
-    }
-
-    private func payloadRow(spec: PayloadSpec) -> some View {
-        HStack(spacing: 10) {
-            statusIcon(for: spec)
-                .frame(width: 20)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(spec.sourceFilename)
-                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
 
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.right")
-                        .font(.caption2)
-                    Text("Documents/\(spec.destinationFilename)")
-                        .font(.caption2.monospaced())
-                }
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                Text(AppPayloadConfig.targetBundleID)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            if let result = injector.results.first(where: { $0.spec.id == spec.id }),
-               !result.success,
-               result.error != nil {
-                Image(systemName: "exclamationmark.circle.fill")
-                    .foregroundStyle(.orange)
-            }
-        }
-        .padding(.vertical, 8)
-    }
-
-    @ViewBuilder
-    private func statusIcon(for spec: PayloadSpec) -> some View {
-        if let result = injector.results.first(where: { $0.spec.id == spec.id }) {
-            if result.success {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-            } else {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.red)
-            }
-        } else {
-            Image(systemName: "doc.fill")
-                .foregroundStyle(AppTheme.accent)
-        }
-    }
-
-    // MARK: - Toggle
-
-    private var toggleCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Toggle(isOn: toggleBinding) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Dán file")
-                        .font(.headline)
-                    Text("Bật = dán tất cả vào Documents của app đích")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .disabled(injector.state.isBusy || !canInteract)
+            Toggle("", isOn: toggleBinding)
+                .labelsHidden()
+                .disabled(injector.state.isBusy || !canInteract)
 
             if injector.state.isBusy {
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text(injector.state == .injecting
-                         ? "Đang dán \(AppPayloadConfig.payloads.count) file…"
-                         : "Đang xóa…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                ProgressView().controlSize(.small)
             }
         }
         .padding(14)
@@ -185,6 +132,39 @@ struct ContentView: View {
             in: RoundedRectangle(cornerRadius: 14, style: .continuous)
         )
     }
+
+    // MARK: - App Icon
+
+    @ViewBuilder
+    private var appIcon: some View {
+        if let customIcon = AppPayloadConfig.customAppIcon {
+            // Icon tùy chỉnh từ Assets
+            Image(customIcon)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        } else if let uiIcon = UIImage(named: "AppPayloadIcon") {
+            // Fallback: tìm ảnh tên AppPayloadIcon trong Assets
+            Image(uiImage: uiIcon)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        } else {
+            // Fallback cuối: SF Symbol
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(AppTheme.accent.opacity(0.15))
+                Image(systemName: "shippingbox.fill")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(AppTheme.accent)
+            }
+            .frame(width: 44, height: 44)
+        }
+    }
+
+    // MARK: - Toggle binding
 
     private var toggleBinding: Binding<Bool> {
         Binding(
@@ -344,5 +324,13 @@ struct ContentView: View {
         if appState.unsupportedMessage != nil { return .red }
         if appState.exploitStatus.isFailed { return .red }
         return .secondary
+    }
+
+    // MARK: - App version
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "AppReleaseDisplayVersion") as? String
+            ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? "1.0"
     }
 }
