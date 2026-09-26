@@ -22,30 +22,29 @@ jobs:
         with:
           xcode-version: 'latest-stable'
 
-      - name: Tự động tìm Scheme và Biên dịch ứng dụng
+      - name: Tự động tìm Scheme và Archive ứng dụng
         run: |
-          mkdir -p build
-          
           # Tìm tên Scheme thực tế đầu tiên trong dự án
           SCHEME_NAME=$(xcodebuild -list -project ThreeOneOSFive.xcodeproj | grep -A 10 "Schemes:" | tail -n +2 | tr -d ' ' | head -n 1)
           echo "Tìm thấy Scheme tên là: $SCHEME_NAME"
           
-          # Chạy lệnh build với Scheme vừa tìm được
-          xcodebuild clean build \
+          # Thực hiện chạy Archive thay vì Build thông thường để tránh lỗi Policy Exception
+          xcodebuild archive \
             -project ThreeOneOSFive.xcodeproj \
             -scheme "$SCHEME_NAME" \
             -configuration Release \
             -sdk iphoneos \
+            -archivePath $(pwd)/build/ThreeOneOSFive.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            CONFIGURATION_BUILD_DIR=$(pwd)/build
+            PROVISIONING_PROFILE_SPECIFIER=""
 
-      - name: Đóng gói thành file .ipa
+      - name: Đóng gói thành file .ipa hoàn chỉnh
         run: |
           mkdir -p Payload
-          cp -r build/*.app Payload/
+          # Sao chép file app nằm bên trong gói .xcarchive ra thư mục Payload
+          cp -r build/ThreeOneOSFive.xcarchive/Products/Applications/*.app Payload/
           zip -r 3105.ipa Payload
 
       - name: Tải file IPA lên GitHub Artifacts
