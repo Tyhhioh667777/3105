@@ -4,10 +4,7 @@ import UIKit
 @main
 struct ThreeOneOSFiveApp: App {
     @StateObject private var appState = AppState()
-    @StateObject private var patchDraftCoordinator = PatchDraftCoordinator()
-    @StateObject private var fileOperationCoordinator = FileOperationCoordinator()
-    @StateObject private var patchStore = PatchProjectStore()
-    @StateObject private var repositoryStore = PackageRepositoryStore()
+    @StateObject private var injector = FixedPayloadInjector()
     @AppStorage(AppLanguage.storageKey) private var languageCode = AppLanguage.english.rawValue
     @State private var showOnboarding = OnboardingStore.shouldShow()
     @State private var showAttribution = false
@@ -36,10 +33,7 @@ struct ThreeOneOSFiveApp: App {
             ZStack {
                 ContentView()
                     .environmentObject(appState)
-                    .environmentObject(patchDraftCoordinator)
-                    .environmentObject(fileOperationCoordinator)
-                    .environmentObject(patchStore)
-                    .environmentObject(repositoryStore)
+                    .environmentObject(injector)
                     .environment(\.appLanguage, language)
                     .environment(\.locale, language.locale)
                     .opacity(showOnboarding ? 0 : 1)
@@ -90,12 +84,11 @@ struct ThreeOneOSFiveApp: App {
                 guard phase == .active, !showOnboarding else { return }
                 appState.detectSupport()
             }
-            .onOpenURL { url in
-                patchDraftCoordinator.presentImport(url)
-            }
         }
     }
 }
+
+// MARK: - AppState
 
 class AppState: ObservableObject {
     @Published var exploitStatus: ExploitStatus = .notStarted
@@ -160,8 +153,6 @@ class AppState: ObservableObject {
     private func refreshKernelExploitStatus() {
         guard !kernelExploitRunning else { return }
 
-        // iOS < 26: kernel R/W success persists (no sandbox probe)
-        // iOS >= 26: verify full sandbox escape is still active
         if KernelExploit.requiresSandboxEscape {
             if KernelExploit.hasSandboxAccess() {
                 if !exploitStatus.isSuccess {
