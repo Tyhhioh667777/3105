@@ -75,11 +75,13 @@ struct ThreeOneOSFiveApp: App {
                 )
             }
             .onAppear {
-                if !showOnboarding {
-                    appState.detectSupport()
-                    checkForUpdate()
-                }
-            }
+    if !showOnboarding {
+        appState.detectSupport()
+        checkForUpdate()
+        // Auto-login từ key đã lưu
+        _ = AuthService.shared.autoLoginIfPossible()
+    }
+}
             .onChange(of: scenePhase) { phase in
                 guard phase == .active, !showOnboarding else { return }
                 appState.detectSupport()
