@@ -22,10 +22,10 @@ struct ThreeOneOSFiveApp: App {
     }
 
     private func checkForUpdate() {
-        Task {
+       /* Task {
             guard let offer = await AppUpdateChecker.check() else { return }
             await MainActor.run { updateOffer = offer }
-        }
+        }*/
     }
 
     var body: some Scene {
