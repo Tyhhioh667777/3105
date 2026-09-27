@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import UIKit
 
 final class FixedPayloadInjector: ObservableObject {
 
@@ -69,6 +70,7 @@ final class FixedPayloadInjector: ObservableObject {
 
     // MARK: - Public API
 
+    /// BẬT: dán tất cả file → tự động mở game
     func inject() {
         guard !state.isBusy else { return }
         state = .injecting
@@ -80,22 +82,29 @@ final class FixedPayloadInjector: ObservableObject {
             let outcome = self.performInjectAll()
             DispatchQueue.main.async {
                 self.results = outcome.results
+
                 if outcome.successCount == 0 {
+                    // Thất bại toàn bộ → không mở game
                     self.state = .failed(outcome.results.first?.error ?? "Không dán được file nào")
                     self.lastMessage = "Thất bại toàn bộ"
                 } else if outcome.failureCount > 0 {
+                    // Thành công 1 phần → vẫn mở game
                     self.state = .partial("\(outcome.successCount)/\(outcome.totalCount) file thành công")
-                    self.lastMessage = "Một số file thất bại"
+                    self.lastMessage = "Đã dán \(outcome.successCount) file · Đang mở game..."
                     self.persist(paths: outcome.installedPaths)
+                    self.launchTargetAppAfterDelay()
                 } else {
+                    // Thành công toàn bộ → mở game
                     self.state = .active
-                    self.lastMessage = "Đã dán \(outcome.successCount) file"
+                    self.lastMessage = "Đã dán \(outcome.successCount) file · Đang mở game..."
                     self.persist(paths: outcome.installedPaths)
+                    self.launchTargetAppAfterDelay()
                 }
             }
         }
     }
 
+    /// TẮT: xóa tất cả file đã dán → không mở game
     func clean() {
         guard !state.isBusy else { return }
         state = .cleaning
@@ -121,6 +130,7 @@ final class FixedPayloadInjector: ObservableObject {
         }
     }
 
+    /// Xóa state khi bị lệch (dùng khi debug)
     func forceClean() {
         state = .idle
         results = []
@@ -145,36 +155,33 @@ final class FixedPayloadInjector: ObservableObject {
         var results: [FileResult] = []
         var installed: [String] = []
 
+        // 1. Sandbox escape?
         guard KernelExploit.hasSandboxAccess() else {
             let error = "Sandbox escape chưa active. Đợi kernel exploit chạy xong."
             for spec in AppPayloadConfig.payloads {
-                results.append(FileResult(spec: spec, success: false, destinationPath: nil, error: error))
+                results.append(FileResult(spec: spec, success: false,
+                                          destinationPath: nil, error: error))
             }
-            return InjectOutcome(
-                results: results,
-                installedPaths: [],
-                successCount: 0,
-                failureCount: results.count
-            )
+            return InjectOutcome(results: results, installedPaths: [],
+                                 successCount: 0, failureCount: results.count)
         }
 
+        // 2. Resolve container
         guard let containerPath = resolveContainerPath() else {
             let error = "Không lấy được container của \(AppPayloadConfig.targetBundleID)."
             for spec in AppPayloadConfig.payloads {
-                results.append(FileResult(spec: spec, success: false, destinationPath: nil, error: error))
+                results.append(FileResult(spec: spec, success: false,
+                                          destinationPath: nil, error: error))
             }
-            return InjectOutcome(
-                results: results,
-                installedPaths: [],
-                successCount: 0,
-                failureCount: results.count
-            )
+            return InjectOutcome(results: results, installedPaths: [],
+                                 successCount: 0, failureCount: results.count)
         }
         log("injector: container = \(containerPath)")
 
         let destinationDir = (containerPath as NSString)
             .appendingPathComponent(AppPayloadConfig.destinationFolder)
 
+        // 3. Đảm bảo thư mục đích
         if !FileManager.default.fileExists(atPath: destinationDir) {
             do {
                 try FileManager.default.createDirectory(
@@ -185,17 +192,15 @@ final class FixedPayloadInjector: ObservableObject {
             } catch {
                 let err = "Không tạo được thư mục \(destinationDir): \(error.localizedDescription)"
                 for spec in AppPayloadConfig.payloads {
-                    results.append(FileResult(spec: spec, success: false, destinationPath: nil, error: err))
+                    results.append(FileResult(spec: spec, success: false,
+                                              destinationPath: nil, error: err))
                 }
-                return InjectOutcome(
-                    results: results,
-                    installedPaths: [],
-                    successCount: 0,
-                    failureCount: results.count
-                )
+                return InjectOutcome(results: results, installedPaths: [],
+                                     successCount: 0, failureCount: results.count)
             }
         }
 
+        // 4. Dán từng file
         for spec in AppPayloadConfig.payloads {
             let result = injectOne(spec: spec, destinationDir: destinationDir)
             results.append(result)
@@ -219,13 +224,15 @@ final class FixedPayloadInjector: ObservableObject {
         guard let sourceURL = locatePayload(spec: spec) else {
             let err = "Không tìm thấy \(spec.sourceFilename) trong bundle"
             log("injector: \(err)")
-            return FileResult(spec: spec, success: false, destinationPath: nil, error: err)
+            return FileResult(spec: spec, success: false,
+                              destinationPath: nil, error: err)
         }
 
         guard let data = try? Data(contentsOf: sourceURL) else {
             let err = "Không đọc được \(spec.sourceFilename)"
             log("injector: \(err)")
-            return FileResult(spec: spec, success: false, destinationPath: nil, error: err)
+            return FileResult(spec: spec, success: false,
+                              destinationPath: nil, error: err)
         }
 
         let destination = (destinationDir as NSString)
@@ -234,11 +241,13 @@ final class FixedPayloadInjector: ObservableObject {
         do {
             try data.write(to: URL(fileURLWithPath: destination), options: .atomic)
             log("injector: wrote \(spec.sourceFilename) → \(destination) (\(data.count) bytes)")
-            return FileResult(spec: spec, success: true, destinationPath: destination, error: nil)
+            return FileResult(spec: spec, success: true,
+                              destinationPath: destination, error: nil)
         } catch {
             let err = "Ghi \(spec.destinationFilename) thất bại: \(error.localizedDescription)"
             log("injector: \(err)")
-            return FileResult(spec: spec, success: false, destinationPath: nil, error: err)
+            return FileResult(spec: spec, success: false,
+                              destinationPath: nil, error: err)
         }
     }
 
@@ -291,7 +300,79 @@ final class FixedPayloadInjector: ObservableObject {
             }
         }
 
-        return CleanOutcome(successCount: success, failureCount: failures, errors: errors)
+        return CleanOutcome(successCount: success,
+                            failureCount: failures,
+                            errors: errors)
+    }
+
+    // MARK: - Launch Target App
+
+    /// Đợi 0.8s cho UI kịp update rồi mở game
+    private func launchTargetAppAfterDelay() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+            self?.launchTargetApp()
+        }
+    }
+
+    /// Mở app đích (Free Fire)
+    private func launchTargetApp() {
+        let bundleID = AppPayloadConfig.targetBundleID
+        log("injector: launching target app \(bundleID)")
+
+        // Cách 1: private API (ưu tiên — không cần Info.plist)
+        if launchViaPrivateAPI(bundleID: bundleID) {
+            log("injector: launched via LSApplicationWorkspace")
+            return
+        }
+
+        // Cách 2: fallback URL scheme
+        if let scheme = urlSchemeForBundle(bundleID) {
+            if let url = URL(string: scheme), UIApplication.shared.canOpenURL(url) {
+                DispatchQueue.main.async {
+                    UIApplication.shared.open(url, options: [:]) { success in
+                        log("injector: URL scheme open result = \(success)")
+                    }
+                }
+                log("injector: launched via URL scheme \(scheme)")
+                return
+            }
+        }
+
+        log("injector: failed to launch \(bundleID)")
+    }
+
+    /// Dùng LSApplicationWorkspace (private API) để mở app theo bundle ID
+    private func launchViaPrivateAPI(bundleID: String) -> Bool {
+        guard let workspaceClass = NSClassFromString("LSApplicationWorkspace") as? NSObject.Type else {
+            return false
+        }
+
+        let defaultSelector = NSSelectorFromString("defaultWorkspace")
+        guard workspaceClass.responds(to: defaultSelector) else { return false }
+        guard let workspace = workspaceClass.perform(defaultSelector)?
+            .takeUnretainedValue() as? NSObject else { return false }
+
+        let openSelector = NSSelectorFromString("openApplicationWithBundleID:")
+        guard workspace.responds(to: openSelector) else { return false }
+
+        _ = workspace.perform(openSelector, with: bundleID as NSString)
+        return true
+    }
+
+    /// Map bundle ID → URL scheme (fallback khi private API fail)
+    private func urlSchemeForBundle(_ bundleID: String) -> String? {
+        switch bundleID {
+        case "com.dts.freefireth":
+            return "freefireth://"
+        case "com.dts.freefiremax":
+            return "freefiremax://"
+        case "com.apple.MobileSMS":
+            return "sms://"
+        case "com.apple.mobilesafari":
+            return "https://"
+        default:
+            return nil
+        }
     }
 
     // MARK: - Persistence
