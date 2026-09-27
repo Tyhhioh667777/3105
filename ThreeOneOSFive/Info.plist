@@ -68,6 +68,12 @@
             </dict>
         </dict>
     </array>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>freefireth</string>
+        <string>freefiremax</string>
+        <string>freefire</string>
+    </array>
     <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
     <key>UIFileSharingEnabled</key>
